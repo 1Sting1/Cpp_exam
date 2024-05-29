@@ -9,7 +9,7 @@
 class Game {
 public:
     Game(const std::string& initialWord, const std::string& dictionaryFile, int numPlayers);
-    ~Game();  // Деструктор для закрытия лог-файла
+    ~Game();
     void displayBoard() const;
     void displayScores() const;
     bool addLetter(int row, int col, char letter);
@@ -29,13 +29,13 @@ private:
     int skipsInRow;
     int numPlayers;
     std::vector<int> scores;
-    mutable std::ofstream logFile;  // Для ведения журнала
+    mutable std::ofstream logFile;
 
     bool isValidPlacement(int row, int col, char letter) const;
     bool isAdjacent(int row, int col) const;
     std::vector<std::string> findWords() const;
     void loadDictionary(const std::string& dictionaryFile);
-    void initLogFile();  // Метод для инициализации лог-файла
+    void initLogFile();
     int calculatePoints(int row, int col) const;
 };
 
