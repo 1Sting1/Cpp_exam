@@ -26,14 +26,14 @@ int main() {
             std::cin >> row;
             if (row == -1) {
                 game.skipTurn();
-                game.displayScores();  // Display scores after skipping turn
+                game.displayScores();
                 continue;
             }
             std::cin >> col >> letter;
             if (!game.addLetter(row, col, letter)) {
                 std::cout << "Invalid move. Try again.\n";
             } else {
-                game.displayScores();  // Display scores after a valid move
+                game.displayScores();
             }
         }
 
