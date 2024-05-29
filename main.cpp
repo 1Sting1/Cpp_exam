@@ -27,7 +27,7 @@ int main() {
             std::cin >> row;
             if (row == -1) {
                 game.skipTurn();
-                game.displayScores();  // Display scores after skipping turn
+                game.displayScores();
                 continue;
             }
             std::cin >> col >> letter;
