@@ -20,6 +20,7 @@ public:
     void setScore(int player, int score);
     void nextTurn();
     void skipTurn();
+    std::string cleanString(const std::string& input) const;
 
 private:
     std::vector<std::vector<char>> board;
@@ -36,7 +37,6 @@ private:
     std::vector<std::string> findWords() const;
     void loadDictionary(const std::string& dictionaryFile);
     void initLogFile();  // Метод для инициализации лог-файла
-    int calculatePoints(int row, int col) const;
 };
 
 #endif

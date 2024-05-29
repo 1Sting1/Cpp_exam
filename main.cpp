@@ -8,12 +8,13 @@ int main() {
     std::cout << "Enter the initial 5-letter word: ";
     std::cin >> initialWord;
 
+
     do {
         std::cout << "Enter the number of players (2-4): ";
         std::cin >> numPlayers;
     } while (numPlayers < 2 || numPlayers > 4);
 
-    std::string dictionaryFile = "../words.txt";  // Убедитесь, что файл находится в правильном месте
+    std::string dictionaryFile = "../engwords.txt";  // Убедитесь, что файл находится в правильном месте
 
     try {
         Game game(initialWord, dictionaryFile, numPlayers);
@@ -33,12 +34,13 @@ int main() {
             if (!game.addLetter(row, col, letter)) {
                 std::cout << "Invalid move. Try again.\n";
             } else {
-                game.displayScores();  // Display scores after a valid move
+                game.displayScores();
             }
         }
 
         std::cout << "Game over!\n";
         game.displayScores();
+        std::cout << initialWord;
     }
     catch (const std::runtime_error& e) {
         std::cerr << "Failed to initialize the game: " << e.what() << std::endl;

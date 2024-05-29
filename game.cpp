@@ -3,20 +3,46 @@
 #include <stdexcept>
 #include <algorithm>
 
+#include <string>
+#include <codecvt>
+#include <locale>
+
+std::string cleanString(const std::string& input) {
+    std::string result;
+
+    for (char c : input) {
+        // Пропустить пустые символы (пробелы, табуляцию и т.д.)
+        if (isspace(c)) {
+            continue;
+        }
+
+        // Пропустить экранированные символы
+        if (c == '\\' && !result.empty() && result.back() == '\\') {
+            result.pop_back();  // Удалить предыдущий символ '\'
+            continue;
+        }
+
+        result.push_back(c);
+    }
+
+    return result;
+}
+
 Game::Game(const std::string& initialWord, const std::string& dictionaryFile, int numPlayers)
         : currentPlayer(0), skipsInRow(0), numPlayers(numPlayers), scores(numPlayers, 0) {
-    // ╨Ш╨╜╨╕╤Ж╨╕╨░╨╗╨╕╨╖╨░╤Ж╨╕╤П ╨╕╨│╤А╨╛╨▓╨╛╨╣ ╨┤╨╛╤Б╨║╨╕
+    // Инициализация игровой доски
     board = std::vector<std::vector<char>>(5, std::vector<char>(5, ' '));
     int middleRow = 2;
     for (int i = 0; i < 5; ++i) {
         board[middleRow][i] = initialWord[i];
     }
+    loadDictionary(dictionaryFile);
     usedWords.push_back(initialWord);
 
-    // ╨Ч╨░╨│╤А╤Г╨╖╨║╨░ ╤Б╨╗╨╛╨▓╨░╤А╤П
-    loadDictionary(dictionaryFile);
+    // Загрузка словаря
 
-    // ╨Ш╨╜╨╕╤Ж╨╕╨░╨╗╨╕╨╖╨░╤Ж╨╕╤П ╨╗╨╛╨│-╤Д╨░╨╣╨╗╨░
+
+    // Инициализация лог-файла
     initLogFile();
 }
 
@@ -68,7 +94,7 @@ bool Game::addLetter(int row, int col, char letter) {
         for (const auto& word : words) {
             if (isValidWord(word) && std::find(usedWords.begin(), usedWords.end(), word) == usedWords.end()) {
                 usedWords.push_back(word);
-                // ╨Э╨░╤З╨╕╤Б╨╗╤П╨╡╨╝ ╨╛╤З╨║╨╕ ╨╕╨│╤А╨╛╨║╤Г ╨▓ ╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╨╕ ╨╛╤В ╨┤╨╗╨╕╨╜╤Л ╤Б╨╗╨╛╨▓╨░
+                // Начисляем очки игроку в зависимости от длины слова
                 int wordScore = word.length();
                 scores[currentPlayer] += wordScore;
                 logFile << "Found valid word: " << word << " - Player " << currentPlayer + 1 << " earns " << wordScore << " points\n";
@@ -82,12 +108,26 @@ bool Game::addLetter(int row, int col, char letter) {
     return false;
 }
 
-bool Game::isValidWord(const std::string& word) const {
-    return dictionary.find(word) != dictionary.end();
+// Function to convert a string to lowercase
+std::string toLower(const std::string& str) {
+    std::string lower_str = str;
+    std::transform(lower_str.begin(), lower_str.end(), lower_str.begin(), ::tolower);
+    return lower_str;
 }
 
+bool Game::isValidWord(const std::string& word) const {
+    std::string lower_word = toLower(word);
+    for (const auto& dict_word : dictionary) {
+        if (toLower(dict_word) == lower_word) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 bool Game::isGameOver() const {
-    // ╨Я╤А╨╛╨▓╨╡╤А╨╕╤В╤М, ╨╖╨░╨┐╨╛╨╗╨╜╨╡╨╜╨░ ╨╗╨╕ ╨┤╨╛╤Б╨║╨░ ╨╕╨╗╨╕ ╤Б╨╗╨╕╤И╨║╨╛╨╝ ╨╝╨╜╨╛╨│╨╛ ╨┐╤А╨╛╨┐╤Г╤Б╨║╨╛╨▓
+    // Проверить, заполнена ли доска или слишком много пропусков
     for (const auto& row : board) {
         for (char cell : row) {
             if (cell == ' ') {
@@ -129,17 +169,17 @@ void Game::skipTurn() {
 }
 
 bool Game::isValidPlacement(int row, int col, char letter) const {
-    // ╨Я╤А╨╛╨▓╨╡╤А╨╕╤В╤М, ╨╜╨░╤Е╨╛╨┤╨╕╤В╤Б╤П ╨╗╨╕ ╨║╨╗╨╡╤В╨║╨░ ╨▓ ╨┐╤А╨╡╨┤╨╡╨╗╨░╤Е ╨┤╨╛╤Б╨║╨╕ ╨╕ ╨┐╤Г╤Б╤В╨░ ╨╗╨╕ ╨╛╨╜╨░
+    // Проверить, находится ли клетка в пределах доски и пуста ли она
     if (row < 0 || row >= 5 || col < 0 || col >= 5 || board[row][col] != ' ') {
         return false;
     }
-    // ╨Ф╨╛╨┐╨╛╨╗╨╜╨╕╤В╨╡╨╗╤М╨╜╨░╤П ╨┐╤А╨╛╨▓╨╡╤А╨║╨░ ╨╜╨░ ╨┤╨╛╨┐╤Г╤Б╤В╨╕╨╝╨╛╤Б╤В╤М ╤А╨░╨╖╨╝╨╡╤Й╨╡╨╜╨╕╤П ╨▒╤Г╨║╨▓╤Л
-    // ╨Э╨░╨┐╤А╨╕╨╝╨╡╤А, ╤З╤В╨╛╨▒╤Л ╨║╨╗╨╡╤В╨║╨░ ╨▒╤Л╨╗╨░ ╤Б╨╝╨╡╨╢╨╜╨░ ╤Б ╨┤╤А╤Г╨│╨╛╨╣ ╨▒╤Г╨║╨▓╨╛╨╣
+    // Дополнительная проверка на допустимость размещения буквы
+    // Например, чтобы клетка была смежна с другой буквой
     return isAdjacent(row, col);
 }
 
 bool Game::isAdjacent(int row, int col) const {
-    // ╨Я╤А╨╛╨▓╨╡╤А╨╕╤В╤М, ╨╡╤Б╤В╤М ╨╗╨╕ ╤А╤П╨┤╨╛╨╝ ╤Б ╨║╨╗╨╡╤В╨║╨╛╨╣ ╨┤╤А╤Г╨│╨╕╨╡ ╨▒╤Г╨║╨▓╤Л
+    // Проверить, есть ли рядом с клеткой другие буквы
     static const std::vector<std::pair<int, int>> directions = {
             {-1, 0}, {1, 0}, {0, -1}, {0, 1}
     };
@@ -153,55 +193,75 @@ bool Game::isAdjacent(int row, int col) const {
     return false;
 }
 
-std::vector<std::string> Game::findWords() const {
-    std::vector<std::string> foundWords;
-
-    // ╨Я╨╛╨╕╤Б╨║ ╨│╨╛╤А╨╕╨╖╨╛╨╜╤В╨░╨╗╤М╨╜╤Л╤Е ╤Б╨╗╨╛╨▓
-    for (const auto& row : board) {
-        std::string word;
-        for (char c : row) {
-            if (c != ' ') {
-                word += c;
-            } else {
-                if (!word.empty() && isValidWord(word) && std::find(usedWords.begin(), usedWords.end(), word) == usedWords.end()) {
-                    foundWords.push_back(word);
-                }
-                word.clear();
+std::string Game::cleanString(const std::string& input) const {
+    std::string output;
+    for (char c : input) {
+        // Пропускаем пробелы
+        if (c != ' ') {
+            // Пропускаем экранированные символы (учитывая типичные escape-последовательности)
+            if (c == '\\') {
+                continue;
             }
-        }
-        if (!word.empty() && isValidWord(word) && std::find(usedWords.begin(), usedWords.end(), word) == usedWords.end()) {
-            foundWords.push_back(word);
+            output += c;
         }
     }
-
-    // ╨Я╨╛╨╕╤Б╨║ ╨▓╨╡╤А╤В╨╕╨║╨░╨╗╤М╨╜╤Л╤Е ╤Б╨╗╨╛╨▓
-    for (int col = 0; col < 5; ++col) {
-        std::string word;
-        for (int row = 0; row < 5; ++row) {
-            if (board[row][col] != ' ') {
-                word += board[row][col];
-            } else {
-                if (!word.empty() && isValidWord(word) && std::find(usedWords.begin(), usedWords.end(), word) == usedWords.end()) {
-                    foundWords.push_back(word);
-                }
-                word.clear();
-            }
-        }
-        if (!word.empty() && isValidWord(word) && std::find(usedWords.begin(), usedWords.end(), word) == usedWords.end()) {
-            foundWords.push_back(word);
-        }
-    }
-
-    return foundWords;
+    return output;
 }
 
-void Game::loadDictionary(const std::string& dictionaryFile) {
-    std::ifstream file(dictionaryFile);
-    if (!file.is_open()) {
-        throw std::runtime_error("Unable to open dictionary file.");
+
+
+std::vector<std::string> Game::findWords() const {
+    std::vector<std::string> words;
+
+    auto extractWords = [&](const std::string& line) {
+        std::string word;
+        for (char ch : line) {
+            if (ch != '.') {
+                word += ch;
+            } else {
+                if (word.length() > 1 && isValidWord(word)) {
+                    words.push_back(word);
+                }
+                word.clear();
+            }
+        }
+        if (word.length() > 1 && isValidWord(word)) {
+            words.push_back(word);
+        }
+    };
+
+    // Horizontal words
+    for (int i = 0; i < 5; ++i) {
+        std::string line;
+        for (int j = 0; j < 5; ++j) {
+            line += board[i][j];
+        }
+        extractWords(cleanString(line));
     }
-    std::string word;
+
+    // Vertical words
+    for (int j = 0; j < 5; ++j) {
+        std::string line;
+        for (int i = 0; i < 5; ++i) {
+            line += board[i][j];
+        }
+        extractWords(cleanString(line));
+    }
+    return words;
+}
+
+void Game::loadDictionary(const std::string& filename) {
+    std::wifstream file(filename);
+    file.imbue(std::locale(file.getloc(), new std::codecvt_utf8<wchar_t>));
+    std::wstring word;
+    dictionary.clear();  // Clear any existing entries in the dictionary
     while (file >> word) {
-        dictionary.insert(word);
+        // Convert word to lowercase
+        std::transform(word.begin(), word.end(), word.begin(), ::towlower);
+        // Remove any non-alphabetic characters from the word
+        word.erase(std::remove_if(word.begin(), word.end(), [](wchar_t c) { return !std::iswalpha(c); }), word.end());
+        if (!word.empty()) {
+            dictionary.insert(std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(word));
+        }
     }
 }
